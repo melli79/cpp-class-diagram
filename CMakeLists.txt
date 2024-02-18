@@ -14,8 +14,11 @@ find_package(Boost REQUIRED)
 
 set(PROJECT_SOURCES
         main.cpp
+        graph.h
         GraphWindow.cpp
         GraphWindow.h
+        LayoutWorker.h
+        LayoutWorker.cpp
 )
 include_directories(${Boost_INCLUDE_DIRS})
 

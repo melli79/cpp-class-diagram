@@ -3,27 +3,41 @@
 //
 
 #include "GraphWindow.h"
-#include <boost/graph/circle_layout.hpp>
-#include <boost/graph/kamada_kawai_spring_layout.hpp>
 #include <QtGui>
 #include <QApplication>
-#include <random>
-#include <vector>
 
 GraphWindow::Graph* createGraph() {
     typedef GraphWindow::Graph  Graph;
     typedef std::pair<int, int>  Edge;
-    std::vector<Edge> edges = { {0,3}, {3,1}, {1,4}, {4,2}, {2,0} };
-    double weights[] = { 1.0, 1.0, 1.0, 1.0, 1.0 };
-    return new Graph(edges.begin(), edges.end(), &weights[0], 5u);
+    std::vector<Edge> edges = { {0,1}, {0,2}, {0,3}, {1,2}, {1,3}, {2,3} };
+    double weights[] = { 1.0, 1.0, 1.0, 1.0, 1.0,  1.0, 1.0, 1.0, 1.0, 1.0 };
+    return new Graph(edges.begin(), edges.end(), &weights[0], 4u);
 }
 
 GraphWindow::GraphWindow(QWidget* parent) :QWidget(parent) {
     g = createGraph();
+    setWindowTitle("Graph K4");
+    workerThread = new QThread();
+    worker = new LayoutWorker(g, ps);
+    worker->moveToThread(workerThread);
+    connect(worker, SIGNAL(done()), this, SLOT(updateRange()));
+    connect(this, SIGNAL(layoutGraph()), worker, SLOT(startLayout()));
+    workerThread->start();
+    qDebug() << "GUI thread: " << QThread::currentThread();
     layoutGraph();
 }
 
 GraphWindow::~GraphWindow() {
+    if (workerThread!=nullptr) {
+        workerThread->quit();
+        workerThread->wait();
+        delete workerThread;
+        workerThread = nullptr;
+    }
+    if (worker!=nullptr) {
+        delete worker;
+        worker = nullptr;
+    }
     if (g!=nullptr) {
         delete g;
         g = nullptr;
@@ -46,27 +60,9 @@ Rect computeRange(std::vector<GraphWindow::Point> const& ps) {
     return Rect::of(x0,y0, x1,y1);
 }
 
-typedef std::mt19937_64  Random;
-typedef std::uniform_real_distribution<>  Uniform;
-
-void GraphWindow::layoutGraph() {
-    if (running)
-        return;
-    running = true;
-    auto random = Random(std::random_device()());
-    auto u01 = Uniform(0.0, 1.0);
-    boost::square_topology squareTopology;
-    double r = 1.0;
-    size_t n = boost::num_vertices(*g);
-    ps.resize(n);
-    for (int i=0; i<n; ++i) {
-        ps[i][0] = u01(random);
-        ps[i][1] = u01(random);
-    }
-    boost::kamada_kawai_spring_layout(*g, &ps[0], boost::get(boost::edge_weight, *g), squareTopology,
-        boost::side_length(1.0));
+void GraphWindow::updateRange() {
     range = computeRange(ps);
-    running = false;
+    update();
 }
 
 Rect computeScale(int width, int height, Rect const& range) {
@@ -95,8 +91,7 @@ void GraphWindow::keyReleaseEvent(QKeyEvent* event) {
             case Qt::Key_Q:
             QApplication::exit(0);
         default:
-            layoutGraph();
-            update();
+            emit layoutGraph();
     }
     event->accept();
 }

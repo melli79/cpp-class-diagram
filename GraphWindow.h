@@ -6,9 +6,8 @@
 #define GRAPHWINDOW_HPP
 
 #include <QWidget>
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/topology.hpp>
-#include <boost/graph/topology.hpp>
+#include "graph.h"
+#include "LayoutWorker.h"
 
 struct Rect {
     double x0, y0, dx, dy;
@@ -40,23 +39,26 @@ public:
     explicit GraphWindow(QWidget* parent = nullptr);
     ~GraphWindow() override;
 
-    void layoutGraph();
     void paintEvent(QPaintEvent*) override;
     void keyReleaseEvent(QKeyEvent* event) override;
 
-    typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, boost::no_property,
-            boost::property<boost::edge_weight_t, double>>
-        Graph;
-    typedef boost::square_topology<>::point_type  Point;
-    typedef std::vector<Point> PositionMap;
+    typedef graph::Graph  Graph;
+    typedef graph::Point  Point;
+    typedef graph::PositionMap  PositionMap;
+
+protected slots:
+    void updateRange();
+
+signals:
+    void layoutGraph();
 
 private:
     Graph* g = nullptr;
     PositionMap ps;
     Rect range = {};
     Rect scale = {};
-    bool running = false;
+    QThread* workerThread;
+    LayoutWorker* worker;
 };
-
 
 #endif //GRAPHWINDOW_HPP
