@@ -6,25 +6,62 @@
 #include <QtGui>
 #include <QApplication>
 
-GraphWindow::Graph* createGraph() {
+std::vector<GraphWindow::Graph> GraphWindow::graphs;
+std::vector<QString> GraphWindow::names;
+
+
+void GraphWindow::createGraphs() {
     typedef GraphWindow::Graph  Graph;
     typedef std::pair<int, int>  Edge;
-    std::vector<Edge> edges = { {0,1}, {0,2}, {0,3}, {1,2}, {1,3}, {2,3} };
     double weights[] = { 1.0, 1.0, 1.0, 1.0, 1.0,  1.0, 1.0, 1.0, 1.0, 1.0 };
-    return new Graph(edges.begin(), edges.end(), &weights[0], 4u);
+    {
+        std::vector<Edge> edges = { {0,1}, {1,2}, {2,3} };
+        graphs.emplace_back(edges.begin(), edges.end(), &weights[0], 4u);
+        names.emplace_back("P3");
+    }
+    {
+        std::vector<Edge> edges = { {0,1}, {1,2}, {2,0} };
+        graphs.emplace_back(edges.begin(), edges.end(), &weights[0], 3u);
+        names.emplace_back("K3 = C3");
+    }
+    {
+        std::vector<Edge> edges = { {0,1}, {1,2}, {2,3}, {3,0} };
+        graphs.emplace_back(edges.begin(), edges.end(), &weights[0], 4u);
+        names.emplace_back("C4");
+    }
+    {
+        std::vector<Edge> edges = { {0,1}, {0,2}, {0,3}, {1,2}, {1,3}, {2,3} };
+        graphs.emplace_back(edges.begin(), edges.end(), &weights[0], 4u);
+        names.emplace_back("K4");
+    }
+    {
+        std::vector<Edge> edges = { {0,1}, {0,2}, {0,3}, {0,4}, {0,5} };
+        graphs.emplace_back(edges.begin(), edges.end(), &weights[0], 6u);
+        names.emplace_back("St5");
+    }
+    {
+        std::vector<Edge> edges = { {0,1}, {0,2}, {0,3}, {0,4}, {1,2},{1,3},{1,4}, {2,3},{2,4}, {3,4} };
+        graphs.emplace_back(edges.begin(), edges.end(), &weights[0], 5u);
+        names.emplace_back("K5");
+    }
+    {
+        std::vector<Edge> edges = { {0,3}, {0,4}, {0,5}, {1,3},{1,4},{1,5}, {2,3}, {2,4}, {2,5} };
+        graphs.emplace_back(edges.begin(), edges.end(), &weights[0], 6u);
+        names.emplace_back("K3,3");
+    }
 }
 
-GraphWindow::GraphWindow(QWidget* parent) :QWidget(parent) {
-    g = createGraph();
-    setWindowTitle("Graph K4");
+GraphWindow::GraphWindow(QWidget* parent) :QWidget(parent), random(std::random_device()()) {
+    createGraphs();
+    dice = Dice(0, graphs.size()-1u);
+    setWindowTitle("Graphs in Qt");
     workerThread = new QThread();
-    worker = new LayoutWorker(g, ps);
+    worker = new LayoutWorker();
     worker->moveToThread(workerThread);
     connect(worker, SIGNAL(done()), this, SLOT(updateRange()));
-    connect(this, SIGNAL(layoutGraph()), worker, SLOT(startLayout()));
     workerThread->start();
     qDebug() << "GUI thread: " << QThread::currentThread();
-    layoutGraph();
+    switchGraph();
 }
 
 GraphWindow::~GraphWindow() {
@@ -38,10 +75,18 @@ GraphWindow::~GraphWindow() {
         delete worker;
         worker = nullptr;
     }
-    if (g!=nullptr) {
-        delete g;
-        g = nullptr;
-    }
+    g = nullptr;
+}
+
+void GraphWindow::layoutGraph() {
+    worker->startLayout(*g, ps);
+}
+
+void GraphWindow::switchGraph() {
+    size_t choice = dice(random);
+    g = &graphs[choice];
+    name = names[choice];
+    layoutGraph();
 }
 
 Rect computeRange(std::vector<GraphWindow::Point> const& ps) {
@@ -72,6 +117,7 @@ Rect computeScale(int width, int height, Rect const& range) {
 
 void GraphWindow::paintEvent(QPaintEvent *paint_event) {
     scale = computeScale(width(), height(), range);
+    setWindowTitle("Graphs in Qt –– "+name);
     auto p = QPainter(this);
     p.setBrush(Qt::black);
     for (auto const& pt :ps) {
@@ -91,7 +137,7 @@ void GraphWindow::keyReleaseEvent(QKeyEvent* event) {
             case Qt::Key_Q:
             QApplication::exit(0);
         default:
-            emit layoutGraph();
+            switchGraph();
     }
     event->accept();
 }

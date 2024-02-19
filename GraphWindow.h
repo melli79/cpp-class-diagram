@@ -41,24 +41,33 @@ public:
 
     void paintEvent(QPaintEvent*) override;
     void keyReleaseEvent(QKeyEvent* event) override;
+    void layoutGraph();
 
     typedef graph::Graph  Graph;
     typedef graph::Point  Point;
     typedef graph::PositionMap  PositionMap;
 
+    typedef std::mt19937_64  Random;
+    typedef std::uniform_int_distribution<size_t>  Dice;
+
+    void switchGraph();
+    static void createGraphs();
+
 protected slots:
     void updateRange();
 
-signals:
-    void layoutGraph();
-
 private:
+    static std::vector<Graph> graphs;
+    static std::vector<QString> names;
     Graph* g = nullptr;
+    QString name;
     PositionMap ps;
     Rect range = {};
     Rect scale = {};
     QThread* workerThread;
     LayoutWorker* worker;
+    Random random;
+    Dice dice;
 };
 
 #endif //GRAPHWINDOW_HPP
