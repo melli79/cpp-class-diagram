@@ -51,7 +51,7 @@ public:
     typedef std::uniform_int_distribution<size_t>  Dice;
 
     void switchGraph();
-    static void createGraphs();
+    void createGraphs();
 
 protected slots:
     void updateRange();

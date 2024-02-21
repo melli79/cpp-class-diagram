@@ -5,14 +5,19 @@
 #ifndef GRAPH_H
 #define GRAPH_H
 
+#include <QtCore>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/topology.hpp>
 
 
 namespace graph {
+    typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS,
+        boost::property<boost::vertex_name_t, QString>
+    >  Graph;
     typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, boost::no_property,
-        boost::property<boost::edge_weight_t, double>>
-    Graph;
+        boost::property<boost::edge_weight_t, double>
+    >  UGraph;
+    typedef std::pair<unsigned, unsigned>  Edge;
     typedef boost::square_topology<>::point_type  Point;
     typedef std::vector<Point> PositionMap;
 

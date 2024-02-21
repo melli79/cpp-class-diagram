@@ -3,8 +3,11 @@
 //
 
 #include "LayoutWorker.h"
+#include <boost/graph/fruchterman_reingold.hpp>
 #include <boost/graph/kamada_kawai_spring_layout.hpp>
 #include <random>
+
+#include "GraphWindow.h"
 
 LayoutWorker::LayoutWorker() = default;
 
@@ -28,7 +31,17 @@ void LayoutWorker::run(Graph const& g, PositionMap& ps) {
         ps[i][0] = u01(random);
         ps[i][1] = u01(random);
     }
-    boost::kamada_kawai_spring_layout(g, &ps[0], boost::get(boost::edge_weight, g), squareTopology,
-        boost::side_length(1.0));
+    boost::graph_traits<graph::Graph>::edge_iterator edge, end;
+    boost::tie(edge, end) = boost::edges(g);
+    std::vector<graph::Edge> edges;
+    std::vector<double> weights(std::distance(edge, end));
+    for (; edge!=end; ++edge)
+        edges.emplace_back(boost::source(*edge, g), boost::target(*edge, g));
+    for (auto w : weights)
+        w = 1.0;
+    auto ug = graph::UGraph(edges.begin(), edges.end(), &weights[0], boost::num_vertices(g));
+    // boost::kamada_kawai_spring_layout(ug, &ps[0], boost::get(boost::edge_weight, ug), squareTopology,
+    //     boost::side_length(1.0));
+    boost::fruchterman_reingold_force_directed_layout(ug, &ps[0], squareTopology);
     emit done();
 }
