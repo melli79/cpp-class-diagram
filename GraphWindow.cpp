@@ -47,7 +47,6 @@ void GraphWindow::createGraphs() {
                     edges.emplace_back(v, v+int(u01(random)*(N-v)));
             }
         }
-        std::vector<std::string> l0s(edges.size());
         auto g = Graph(edges.begin(), edges.end(), N);
 
         std::vector<int> cc(N);
@@ -90,12 +89,12 @@ void GraphWindow::createGraphs() {
         boost::tie(v, end) = boost::vertices(sg);
         for (; v!=end; ++v)
             boost::put(labels, *v, QString("%1").arg(sizes[*v]));
-        std::cout << "Trunkated to " << boost::num_vertices(sg) << " vertices and " << boost::num_edges(sg) << " edges., sizes ";
+        std::cout << "Condensed to " << boost::num_vertices(sg) << " vertices and " << boost::num_edges(sg) << " edges., sizes ";
         std::sort(sizes.begin(), sizes.end());
         unsigned i=0;
         for (auto si=sizes.rbegin(); si!=sizes.rend(); ++si) {
             std::cout << *si << ", ";
-            if (++i>accepteds.size())
+            if (++i>5)
                 break;
         }
         std::cout << std::endl;
@@ -109,8 +108,9 @@ GraphWindow::GraphWindow(QWidget* parent) :QWidget(parent), random(std::random_d
     dice = Dice(0, graphs.size()-1u);
     setWindowTitle("Graphs in Qt");
     workerThread = new QThread();
-    worker = new LayoutWorker();
+    worker = new LayoutWorker(ps);
     worker->moveToThread(workerThread);
+    connect(this, &GraphWindow::layoutGraph, worker, &LayoutWorker::startLayout);
     connect(worker, SIGNAL(done()), this, SLOT(updateRange()));
     workerThread->start();
     qDebug() << "GUI thread: " << QThread::currentThread();
@@ -131,29 +131,25 @@ GraphWindow::~GraphWindow() {
     g = nullptr;
 }
 
-void GraphWindow::layoutGraph() {
-    worker->startLayout(*g, ps);
-}
-
 void GraphWindow::switchGraph() {
     size_t choice = dice(random);
     g = &graphs[choice];
     name = names[choice];
-    layoutGraph();
+    emit layoutGraph(g);
 }
 
 Rect computeRange(std::vector<GraphWindow::Point> const& ps) {
     auto const& p0 = ps[0];
-    double x0=p0[0], y0=p0[1];  double x1=x0, y1=y0;
+    double x0=p0.x, y0=p0.y;  double x1=x0, y1=y0;
     for (auto const& p :ps) {
-        if (p[0]<x0)
-            x0 = p[0];
-        else if (x1<p[0])
-            x1 = p[0];
-        if (p[1]<y0)
-            y0 = p[1];
-        else if (y1<p[1])
-            y1 = p[1];
+        if (p.x<x0)
+            x0 = p.x;
+        else if (x1<p.x)
+            x1 = p.x;
+        if (p.y<y0)
+            y0 = p.y;
+        else if (y1<p.y)
+            y1 = p.y;
     }
     return Rect::of(x0,y0, x1,y1);
 }
@@ -174,22 +170,22 @@ void GraphWindow::paintEvent(QPaintEvent *paint_event) {
     auto p = QPainter(this);
     p.setBrush(Qt::black);
     for (auto const& pt :ps) {
-        p.drawEllipse(scale.px(pt[0])-2, scale.py(pt[1])-2, 5,5);
+        p.drawEllipse(scale.px(pt.x)-2, scale.py(pt.y)-2, 5,5);
     }
     boost::graph_traits<Graph>::edge_iterator e, end;
     for (boost::tie(e, end) = boost::edges(*g); e!=end; ++e) {
         Point const& p0 = ps[boost::source(*e, *g)];  Point const& p1 = ps[boost::target(*e, *g)];
-        p.drawLine(scale.px(p0[0]),scale.py(p0[1]), scale.px(p1[0]),scale.py(p1[1]));
+        p.drawLine(scale.px(p0.x),scale.py(p0.y), scale.px(p1.x),scale.py(p1.y));
     }
 
     auto labels = boost::get(boost::vertex_name, *g);
     boost::graph_traits<Graph>::vertex_iterator v, end2;
     for (boost::tie(v, end2)=boost::vertices(*g); v!=end2; ++v) {
         Point const& p1 = ps[*v];
-        int px = scale.px(p1[0]);
-        int py = scale.py(p1[1]);
+        int px = scale.px(p1.x);
+        int py = scale.py(p1.y);
         p.drawEllipse(px-1, py-1, 3, 3);
-        p.drawText(px, py, boost::get(labels, *v));
+        p.drawText(px+5, py+5, boost::get(labels, *v));
 
     }
     p.end();

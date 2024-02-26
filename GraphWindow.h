@@ -41,7 +41,6 @@ public:
 
     void paintEvent(QPaintEvent*) override;
     void keyReleaseEvent(QKeyEvent* event) override;
-    void layoutGraph();
 
     typedef graph::Graph  Graph;
     typedef graph::Point  Point;
@@ -52,6 +51,9 @@ public:
 
     void switchGraph();
     void createGraphs();
+
+signals:
+    void layoutGraph(graph::Graph const* g);
 
 protected slots:
     void updateRange();

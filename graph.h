@@ -14,11 +14,15 @@ namespace graph {
     typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS,
         boost::property<boost::vertex_name_t, QString>
     >  Graph;
-    typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, boost::no_property,
-        boost::property<boost::edge_weight_t, double>
-    >  UGraph;
+    typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS,
+            boost::property<boost::vertex_index_t, unsigned>
+        >  UGraph;
+    typedef boost::graph_traits<graph::UGraph>::vertex_descriptor  UVertex;
     typedef std::pair<unsigned, unsigned>  Edge;
-    typedef boost::square_topology<>::point_type  Point;
+    typedef boost::square_topology<>::point_type  TPoint;
+    struct Point {
+        double x, y;
+    };
     typedef std::vector<Point> PositionMap;
 
 }
