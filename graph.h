@@ -12,7 +12,7 @@
 
 namespace graph {
     typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS,
-        boost::property<boost::vertex_name_t, QString>
+        boost::property<boost::vertex_name_t, size_t>
     >  Graph;
     typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS,
             boost::property<boost::vertex_index_t, unsigned>

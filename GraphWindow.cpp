@@ -6,6 +6,7 @@
 #include <boost/graph/strong_components.hpp>
 #include <QtGui>
 #include <QApplication>
+#include <cmath>
 
 std::vector<GraphWindow::Graph> GraphWindow::graphs;
 std::vector<QString> GraphWindow::names;
@@ -31,7 +32,7 @@ void GraphWindow::createGraphs() {
     typedef graph::Edge  Edge;
     const unsigned N = 100;
     auto d6 = Poisson(3);
-    auto bad = 0.025;
+    auto bad = 0.02;
     auto u01 = Uniform(0.0, 1.0);
     for (unsigned n=0; n<5; ++n) {
         std::vector<Edge> edges;
@@ -88,7 +89,7 @@ void GraphWindow::createGraphs() {
         boost::graph_traits<Graph>::vertex_iterator v, end;
         boost::tie(v, end) = boost::vertices(sg);
         for (; v!=end; ++v)
-            boost::put(labels, *v, QString("%1").arg(sizes[*v]));
+            boost::put(labels, *v, sizes[*v]);
         std::cout << "Condensed to " << boost::num_vertices(sg) << " vertices and " << boost::num_edges(sg) << " edges., sizes ";
         std::sort(sizes.begin(), sizes.end());
         unsigned i=0;
@@ -164,6 +165,12 @@ Rect computeScale(int width, int height, Rect const& range) {
     return { range.x0 +(range.dx-width/dx)/2, range.y1() -(range.dy-height/dx)/2, dx, -dx };
 }
 
+int ild(size_t x) {
+    if (x<=1)
+        return 0;
+    return int(3*log2(x));
+}
+
 void GraphWindow::paintEvent(QPaintEvent *paint_event) {
     scale = computeScale(width(), height(), range);
     setWindowTitle("Graphs in Qt –– "+name);
@@ -184,8 +191,10 @@ void GraphWindow::paintEvent(QPaintEvent *paint_event) {
         Point const& p1 = ps[*v];
         int px = scale.px(p1.x);
         int py = scale.py(p1.y);
-        p.drawEllipse(px-1, py-1, 3, 3);
-        p.drawText(px+5, py+5, boost::get(labels, *v));
+        size_t size = boost::get(labels, *v);
+        int d = 3+ild(size);
+        p.drawEllipse(px-d/2, py-d/2, d, d);
+        p.drawText(px+5, py+5, QString("%1").arg(size));
 
     }
     p.end();
