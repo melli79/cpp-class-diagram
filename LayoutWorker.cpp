@@ -56,10 +56,10 @@ void layoutHierarchical(graph::Graph const& sg, graph::UGraph const& ug, graph::
     boost::square_topology squareTopology;
     std::vector<graph::TPoint> ePoints(N);
     std::set<unsigned> nextLayer;
-    double y = 1.0;
+    double y = 0.0;
     for (unsigned v : orderedPoints) {
         if (nextLayer.find(v)!=nextLayer.end()) {
-            y -= 0.1;
+            y += 0.1;
             nextLayer.clear();
         }
         ePoints[v][0] = u01(random);

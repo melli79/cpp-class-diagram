@@ -182,7 +182,13 @@ void GraphWindow::paintEvent(QPaintEvent *paint_event) {
     boost::graph_traits<Graph>::edge_iterator e, end;
     for (boost::tie(e, end) = boost::edges(*g); e!=end; ++e) {
         Point const& p0 = ps[boost::source(*e, *g)];  Point const& p1 = ps[boost::target(*e, *g)];
-        p.drawLine(scale.px(p0.x),scale.py(p0.y), scale.px(p1.x),scale.py(p1.y));
+        int x0 = scale.px(p0.x);  int y0 = scale.py(p0.y);
+        int x1 = scale.px(p1.x);  int y1 = scale.py(p1.y);
+        p.drawLine(x0,y0, x1,y1);
+        int dx = x0-x1;  int dy = y0-y1;
+        double f = 10/sqrt(dx*dx+dy*dy);
+        p.drawLine(x1,y1, x1+int((dx-0.25*dy)*f), y1+int((0.25*dx+dy)*f));
+        p.drawLine(x1,y1, x1+int((dx+0.25*dy)*f), y1+int((-0.25*dx+dy)*f));
     }
 
     auto labels = boost::get(boost::vertex_name, *g);
